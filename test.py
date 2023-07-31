@@ -3,7 +3,7 @@ from dateutil.relativedelta import relativedelta
 
 
 def test(data_file: str, years=0, months=0, days=0, hours=0, minutes=0, seconds=0):
-    '''Функция парсинга файла в данные ohlc с объемами
+    """Функция парсинга файла в данные ohlc с объемами
     :param data_file: Файл с данными
     :param years: Кол-во лет
     :param months: Кол-во месяцев
@@ -11,8 +11,7 @@ def test(data_file: str, years=0, months=0, days=0, hours=0, minutes=0, seconds=
     :param hours: Кол-во часов
     :param minutes: Кол-во минут
     :param seconds: Кол-во секунд
-    :return: Файл с данными ohlc с объемами
-    '''
+    :return: Файл с данными ohlc с объемами"""
     # Чтение файла
     file = open(data_file, "r")
     file_report = open("report.txt", "w")
@@ -30,12 +29,11 @@ def test(data_file: str, years=0, months=0, days=0, hours=0, minutes=0, seconds=
     vol_sum = 0
     file_report.write('<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<{VOLUME...}>\n')
 
-    # Определение шага цены и начальной даты по первым строкам данных
+    # Определение шага цены и начальной даты по первым строкам данных (На случай, если потребуется выводить цену, при которой не было сделок)
     vol = 0
     for line in lines[1:1000]:
         line = line.strip().split(",")
         vol_new = float(line[4])
-        # print(line, vol_new, vol)
         if 'date' not in locals():
             date = datetime.datetime.strptime(line[2], '%Y%m%d').date()
             cluster_date_time = datetime.datetime.combine(date, datetime.time(0, 0, 0)) - step
@@ -87,4 +85,4 @@ def test(data_file: str, years=0, months=0, days=0, hours=0, minutes=0, seconds=
     file_report.close()
 
 
-test("GAZP_230310_230410.txt", days=1)
+test("GAZP_230310_230410.txt", minutes=15)
