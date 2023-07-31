@@ -3,6 +3,16 @@ from dateutil.relativedelta import relativedelta
 
 
 def test(data_file: str, years=0, months=0, days=0, hours=0, minutes=0, seconds=0):
+    '''Функция парсинга файла в данные ohlc с объемами
+    :param data_file: Файл с данными
+    :param years: Кол-во лет
+    :param months: Кол-во месяцев
+    :param days: Кол-во дней
+    :param hours: Кол-во часов
+    :param minutes: Кол-во минут
+    :param seconds: Кол-во секунд
+    :return: Файл с данными ohlc с объемами
+    '''
     # Чтение файла
     file = open(data_file, "r")
     file_report = open("report.txt", "w")
