@@ -30,14 +30,14 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
     ohlc_close = 0.0
     volume = {}
     vol_sum = 0
-    sel_vol = 0
-    buy_vol = 0
-    delta_type = "equal"
+    sel_vol = {}
+    buy_vol = {}
+    delta_type = ""
     start_date = datetime.datetime.strptime(data_list[0][0][:10], '%Y-%m-%d').date()
     cluster_date_time = datetime.datetime.combine(start_date, datetime.time(0, 0, 0)) - step
     previously_cost = float(data_list[0][1])
     file_report = open("report.txt", "w")
-    file_report.write('<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>, <DELTA_VOL>, <DELTA_TYPE>, <{VOLUME...}>\n')
+    file_report.write('<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>, <{SEL_VOL...}>, <{BUY_VOL...}>, <DELTA_TYPE>, <{VOLUME...}>\n')
 
     # Перебор строк с формированием кластера
     for line in data_list:
@@ -47,18 +47,6 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
         time = datetime.datetime.strptime(line[0][11:], '%H:%M:%S').time()
         date_time = datetime.datetime.combine(date, time)
 
-        # Задаем тип Дельты
-        if cost > previously_cost:
-            delta_type = "buy_vol"
-        elif cost < previously_cost:
-            delta_type = "sel_vol"
-
-        # Присваиваем значение выбранному типу дельты
-        if delta_type == 'sel_vol':
-            sel_vol += vol
-        else:
-            buy_vol += vol
-        previously_cost = cost
 
         # Если время в строке данных в диапазоне кластера  - собираем данные по кластеру
         if cluster_date_time + step > date_time >= cluster_date_time:
@@ -69,22 +57,32 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
                 volume[cost] += vol
             else:
                 volume.setdefault(cost, vol)
-            ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, delta_vol, delta_type, volume]
+
+            # Подсчет кол-ва позиций (buy_vol, sel_vol)
+            if cost < previously_cost:
+                if cost in sel_vol:
+                    sel_vol[cost] += vol
+                else:
+                    sel_vol.setdefault(cost, vol)
+            elif cost > previously_cost:
+                if cost in buy_vol:
+                    buy_vol[cost] += vol
+                else:
+                    buy_vol.setdefault(cost, vol)
+
+            ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, sel_vol, buy_vol, delta_type, volume]
         # Иначе печатаем кластер и переходим к следующему диапазону
         else:
             if 'ohlc' in locals():
-                if buy_vol == max(sel_vol,buy_vol):
-                    delta_type = 'buy_val'
-                elif sel_vol == max(sel_vol,buy_vol):
-                    delta_type = 'sel_val'
-                else:
-                    delta_type = 'equal'
-                delta_vol = abs(buy_vol - sel_vol)
-                ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, delta_vol, delta_type, volume]
+                if sum(buy_vol.values()) > sum(sel_vol.values()):
+                    delta_type = 'buy_vol'
+                elif sum(buy_vol.values()) < sum(sel_vol.values()):
+                    delta_type = 'sel_vol'
+                ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, sel_vol, buy_vol, delta_type, volume]
                 file_report.write(str(ohlc)+'\n')
                 volume = {}
-                buy_vol = 0
-                sel_vol = 0
+                buy_vol = {}
+                sel_vol = {}
             while date_time >= cluster_date_time + step:
                 cluster_date_time += step
             ohlc_cluster = str(cluster_date_time)
@@ -96,8 +94,20 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
                 volume[cost] += vol
             else:
                 volume.setdefault(cost, vol)
-            ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, delta_vol, delta_type, volume]
-    delta_vol = abs(buy_vol - sel_vol)
+
+            # Подсчет кол-ва позиций (buy_vol, sel_vol)
+            if cost < previously_cost:
+                if cost in sel_vol:
+                    sel_vol[cost] += vol
+                else:
+                    sel_vol.setdefault(cost, vol)
+            elif cost > previously_cost:
+                if cost in buy_vol:
+                    buy_vol[cost] += vol
+                else:
+                    buy_vol.setdefault(cost, vol)
+            ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, sel_vol, buy_vol, delta_type, volume]
+        previously_cost = cost
     file_report.write(str(ohlc) + '\n')
 
     file_report.close()
