@@ -38,6 +38,7 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
     previously_cost = float(data_list[0][1])
     file_report = open("report.txt", "w")
     file_report.write('<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>, <{SEL_VOL...}>, <{BUY_VOL...}>, <DELTA_TYPE>, <{VOLUME...}>\n')
+    print('<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>, <{SEL_VOL...}>, <{BUY_VOL...}>, <DELTA_TYPE>, <{VOLUME...}>\n')
 
     # Перебор строк с формированием кластера
     for line in data_list:
@@ -80,6 +81,7 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
                     delta_type = 'sel_vol'
                 ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, sel_vol, buy_vol, delta_type, volume]
                 file_report.write(str(ohlc)+'\n')
+                print(ohlc)
                 volume = {}
                 buy_vol = {}
                 sel_vol = {}
@@ -109,6 +111,7 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
             ohlc = [ohlc_cluster, ohlc_open, ohlc_high, ohlc_low, ohlc_close, sel_vol, buy_vol, delta_type, volume]
         previously_cost = cost
     file_report.write(str(ohlc) + '\n')
+    print(ohlc)
 
     file_report.close()
 
