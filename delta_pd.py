@@ -20,8 +20,9 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
     data_json = pd.read_json(link)
     data_list = data_json["data"]["data"]
     data_np = np.array(data_list)
-    df1 = pd.DataFrame(data_np, columns=['date_time', 'cost', 'value'])
-    df1['date_time'] = pd.to_datetime(df1['date_time'])
+    df1 = pd.DataFrame(data_np, columns=['date_time', 'cost', 'value']).set_index('date_time')
+    df1.index = pd.to_datetime(df1.index)
+    # df1['date_time'] = pd.to_datetime(df1['date_time'])
     df1['cost'] = pd.to_numeric(df1['cost'])
     df1['value'] = pd.to_numeric(df1['value'])
     # ticker = data_json["data"]["ticker"]
@@ -29,10 +30,13 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
     # df2.columns = ['date', 'time']
     # df = pd.concat([df2, df1], axis=1).drop('date_time', axis=1)
 
-    df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq='2S')).max().dropna()
+    # df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq='2S')).agg({'cost': ['max', 'min', 'first', 'last']}).dropna()
+
+    df_cluster = df1['cost'].resample('2S').ohlc().dropna()
     # df_cluster = df_cluster.loc[df_cluster['cost'] != 0]
-    print(df_cluster['cost'])
-    print(df1)
+    # print(df_cluster)
+    # print(df_cluster)
+    print(df_cluster)
 
 
 ohlc_delta("data.json", seconds=2)
