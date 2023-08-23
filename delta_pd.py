@@ -32,7 +32,10 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
 
     # df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq='2S')).agg({'cost': ['max', 'min', 'first', 'last']}).dropna()
 
-    df_cluster = df1['cost'].resample('2S').ohlc().dropna()
+    resample_ohlc = df1['cost'].resample('2S').ohlc()
+    resample_value = df1['value'].resample('2S').sum()
+    # resample_value.rename(columns={0: 'sum'})
+    df_cluster = pd.concat([resample_ohlc, resample_value], axis=1).dropna().rename(columns={'value': 'sum'})
     # df_cluster = df_cluster.loc[df_cluster['cost'] != 0]
     # print(df_cluster)
     # print(df_cluster)
