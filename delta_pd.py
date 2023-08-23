@@ -29,9 +29,10 @@ def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds
     # df2.columns = ['date', 'time']
     # df = pd.concat([df2, df1], axis=1).drop('date_time', axis=1)
 
-    df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq='2S')).sum()
-    df_cluster = df_cluster.loc[df_cluster['cost'] != 0]
-    print(df_cluster)
+    df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq='2S')).max().dropna()
+    # df_cluster = df_cluster.loc[df_cluster['cost'] != 0]
+    print(df_cluster['cost'])
+    print(df1)
 
 
 ohlc_delta("data.json", seconds=2)
