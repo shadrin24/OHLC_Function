@@ -1,46 +1,67 @@
-import requests
-import datetime
-from dateutil.relativedelta import relativedelta
 import pandas as pd
 import numpy as np
+# import openpyxl
 
 
-def ohlc_delta(link: str, years=0, months=0, days=0, hours=0, minutes=0, seconds=0):
+# Если байер присвоит 1 в ячейку
+def buyer(s):
+    s_diff = s - s.shift(1)
+    s_diff = s_diff.map(np.sign)
+    s_diff = s_diff.replace(to_replace=0, method='ffill')
+    return s_diff[s_diff == 1]
+
+
+# Если селлер присвоит 1 в ячейку
+def seller(s):
+    s_diff = s - s.shift(1)
+    s_diff = s_diff.map(np.sign)
+    s_diff = s_diff.replace(to_replace=0, method='ffill')
+    return abs(s_diff[s_diff == -1])
+
+
+# Присвоит тип дельты в кластере
+def delta_type(s):
+    s = s.map(np.sign).fillna(0)
+    s = s.replace({0: 'equals',
+                   1: 'buyer',
+                   -1: 'seller'})
+    return s
+
+
+def ohlc_delta(link: str, time_cluster: str):
     """Функция парсинга json данных в данные ohlc с объемами и дельтой
     :param link: Ссылка на API с данными
-    :param years: Кол-во лет
-    :param months: Кол-во месяцев
-    :param days: Кол-во дней
-    :param hours: Кол-во часов
-    :param minutes: Кол-во минут
-    :param seconds: Кол-во секунд
-    :return: Файл с данными ohlc с объемами"""
+    :param time_cluster: Кластер формата pd.Grouper(freq=...)"""
 
     # Получаем датафрейм с API
     data_json = pd.read_json(link)
     data_list = data_json["data"]["data"]
     data_np = np.array(data_list)
-    df1 = pd.DataFrame(data_np, columns=['date_time', 'cost', 'value']).set_index('date_time')
-    df1.index = pd.to_datetime(df1.index)
-    # df1['date_time'] = pd.to_datetime(df1['date_time'])
+    df1 = pd.DataFrame(data_np, columns=['date_time', 'cost', 'value'])
     df1['cost'] = pd.to_numeric(df1['cost'])
     df1['value'] = pd.to_numeric(df1['value'])
-    # ticker = data_json["data"]["ticker"]
-    # df2 = df1['date_time'].str.split(' ', expand=True)
-    # df2.columns = ['date', 'time']
-    # df = pd.concat([df2, df1], axis=1).drop('date_time', axis=1)
+    df1['date_time'] = pd.to_datetime(df1['date_time'])
 
-    # df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq='2S')).agg({'cost': ['max', 'min', 'first', 'last']}).dropna()
+    # Определяем колличество байеров и селлеров
+    df1['buyer'] = (buyer(df1['cost']) * df1['value']).fillna(0).astype(int)
+    df1['seller'] = (seller(df1['cost']) * df1['value']).fillna(0).astype(int)
 
-    resample_ohlc = df1['cost'].resample('2S').ohlc()
-    resample_value = df1['value'].resample('2S').sum()
-    # resample_value.rename(columns={0: 'sum'})
-    df_cluster = pd.concat([resample_ohlc, resample_value], axis=1).dropna().rename(columns={'value': 'sum'})
-    # df_cluster = df_cluster.loc[df_cluster['cost'] != 0]
+    # Группируем в кластер
+    df_cluster = df1.groupby(pd.Grouper(key='date_time', axis=0, freq=time_cluster)).agg({'cost': ['first', 'max', 'min', 'last'],
+                                                                                          'seller': 'sum',
+                                                                                          'buyer': 'sum',
+                                                                                          'value': 'sum'}).dropna()
+    # Добавляем тип дельты
+    df_cluster['delta_type'] = df_cluster['buyer'] - df_cluster['seller']
+    df_cluster['delta_type'] = delta_type(df_cluster['delta_type'])
+
+    # Оформляем
+    df_cluster = df_cluster.reset_index()
+    df_cluster.columns = ['date_time', 'open', 'high', 'low', 'close', 'buyer', 'seller', 'value', 'delta_type']
+    df_cluster.index.name = 'index'
     # print(df_cluster)
-    # print(df_cluster)
-    print(df_cluster)
+    df_cluster.to_csv('report.csv')
 
 
-ohlc_delta("data.json", seconds=2)
-# ohlc_delta("https://api.meridian.trade/api/dataset_p8dvpe3dcnezte8hq491?name=GAZP", seconds=2)
+# ohlc_delta("data.json", '2S')
+ohlc_delta("https://api.meridian.trade/api/dataset_p8dvpe3dcnezte8hq491?name=GAZP", '15Min')
